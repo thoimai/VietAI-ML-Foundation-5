@@ -37,25 +37,25 @@ if __name__ == "__main__":
     test_x = add_one(test_x)
    
     # [TODO 1.11] Create TF placeholders to feed train_x and train_y when training
-    x = None 
-    y = None 
+    x = tf.placeholder(tf.float32, name='x')
+    y = tf.placeholder(tf.float32, name='y')
 
     # [TODO 1.12] Create weights (W) using TF variables
     w_shape = (train_x.shape[1],1)
-    w = None 
+    w = tf.Variable(tf.random_normal(shape=w_shape), name='w')
 
     # [TODO 1.13] Create a feed-forward operator
-    pred = None 
+    pred = 1. / tf.add(1., tf.exp(-tf.matmul(x,w)))
 
     # [TODO 1.14] Write the cost function
-    cost = None 
+    cost = tf.reduce_sum(-tf.add(y * tf.log(pred), (1 - y)*tf.log(1 - pred)))
 
     # Define hyper-parameters and train-related parameters
     num_epoch = 1000
     learning_rate = 0.01    
 
     # [TODO 1.15] Create an SGD optimizer
-    optimizer = None 
+    optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cost)
 
     # Some meta parameters
     epochs_to_draw = 100
@@ -71,8 +71,9 @@ if __name__ == "__main__":
 
         for e in range(num_epoch):
             # [TODO 1.16] Compute loss and update weights here
-            loss = 0
+            loss = sess.run(optimizer, feed_dict={x: train_x, y:train_y})
             # Update weights...
+            w = sess.run(w)
 
             all_loss.append(loss)
 
