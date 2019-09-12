@@ -33,7 +33,9 @@ class LogisticClassifier(object):
         # [TODO 1.5]
         # Compute feedforward result
 
-        result = None 
+        z = np.dot(x.T, self.w)
+        result = 1. / (1. + np.exp(-z))
+
         return result
 
 
@@ -48,8 +50,9 @@ class LogisticClassifier(object):
         """
         # [TODO 1.6]
         # Compute loss value (a single number)
+        loss_matrix = - (y * np.log(y_hat) + (1 - y) * np.log(1 - y_hat))
+        loss = np.mean(loss_matrix)
 
-        loss = 0
         return loss
 
 
@@ -64,8 +67,10 @@ class LogisticClassifier(object):
         """ 
         # [TODO 1.7]
         # Compute the gradient matrix of w, it has the same size of w
+        m = y.shape[0]
+        loss = y_hat - y
+        w_grad = np.dot(x.T, loss)/m
 
-        w_grad = None
         return w_grad
 
 
@@ -79,7 +84,7 @@ class LogisticClassifier(object):
         # [TODO 1.8]
         # Update w using SGD
 
-        self.w = self.w
+        self.w = self.w - learning_rate * grad
 
 
     def update_weight_momentum(self, grad, learning_rate, momentum, momentum_rate):
@@ -93,8 +98,8 @@ class LogisticClassifier(object):
         """
         # [TODO 1.9]
         # Update w using SGD with momentum
-
-        self.w = self.w
+        momentum = momentum_rate * momentum + learning_rate * grad
+        self.w = self.w - momentum
 
     
 def plot_loss(all_loss):
@@ -111,9 +116,12 @@ def normalize_per_pixel(train_x, test_x):
     :param test_x: test images, shape=(num_test, image_height, image_width)
     """
     # [TODO 1.1]
-    # train_mean and train_std should have the shape of (1, image_height, image_width) 
-    # train_x = ...
-    # test_x = ...
+    # train_mean and train_std should have the shape of (1, image_height, image_width)
+    mean_per_pixel = np.mean(train_x, axis=0)
+    std_per_pixel = np.sqrt(np.mean((train_x - mean_per_pixel)**2, axis=0))
+
+    train_x = (train_x - mean_per_pixel)/std_per_pixel
+    test_x = (test_x - mean_per_pixel)/std_per_pixel
 
     return train_x, test_x
 
@@ -126,9 +134,12 @@ def normalize_all_pixel(train_x, test_x):
     :param test_x: test images, shape=(num_test, image_height, image_width)
     """
     # [TODO 1.2]
-    # train_mean and train_std should have the shape of (1, image_height, image_width) 
-    # train_x = ...
-    # test_x = ...
+    # train_mean and train_std should have the shape of (1, image_height, image_width)
+    mean_all_pixel = np.mean(train_x)
+    std_all_pixel = np.sqrt(np.mean((train_x - mean_all_pixel)**2))
+
+    train_x = (train_x - mean_all_pixel)/std_all_pixel
+    test_x = (test_x - mean_all_pixel)/std_all_pixel
 
     return train_x, test_x
 
@@ -138,7 +149,7 @@ def reshape2D(tensor):
     Reshape our 3D tensors to 2D. A 3D tensor of shape (num_samples, image_height, image_width) must be reshaped into (num_samples, image_height*image_width)
     """
     # [TODO 1.3]
-
+    tensor = tensor.reshape(tensor.shape[0], -1)
     return tensor
 
 
@@ -149,6 +160,9 @@ def add_one(x):
     :param x: input data
     """
     # [TODO 1.4]
+    m = x.shape[0]
+
+    x = np.concatenate((np.ones((m,1)), x), axis=1)
 
     return x
 
@@ -163,10 +177,14 @@ def test(y_hat, test_y):
     
     # [TODO 1.10]
     # Compute test scores using test_y and y_hat
+    P1 = len(test_y[np.where(test_y==1)])
+    P2 = len(y_hat[np.where(y_hat==1)])
+    TP = len(np.where(y_hat == test_y)[0])
 
-    precision = 0
-    recall = 0
-    f1 = 0
+    precision = float(TP) / float(P1)
+    recall = float(TP) / float(P2)
+    f1 = 2/(1/precision + 1/recall)
+
     print("Precision: %.3f" % precision)
     print("Recall: %.3f" % recall)
     print("F1-score: %.3f" % f1)
