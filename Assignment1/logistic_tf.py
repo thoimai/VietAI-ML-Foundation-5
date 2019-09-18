@@ -48,7 +48,8 @@ if __name__ == "__main__":
     pred = 1. / tf.add(1., tf.exp(-tf.matmul(x,w)))
 
     # [TODO 1.14] Write the cost function
-    cost = tf.reduce_sum(-tf.add(y * tf.log(pred), (1 - y)*tf.log(1 - pred)))
+    y_hat = tf.nn.sigmoid(tf.matmul(x,w))
+    cost = tf.nn.sigmoid_cross_entropy_with_logits(logits= y_hat, labels=y)
 
     # Define hyper-parameters and train-related parameters
     num_epoch = 1000
@@ -71,16 +72,20 @@ if __name__ == "__main__":
 
         for e in range(num_epoch):
             # [TODO 1.16] Compute loss and update weights here
-            loss = sess.run(optimizer, feed_dict={x: train_x, y:train_y})
+            sess.run(optimizer, feed_dict={x: train_x, y: train_y})
+
+            c = sess.run(cost, feed_dict={x: train_x, y: train_y})
+            loss = sum(sum(c))/num_train
+
             # Update weights...
-            w = sess.run(w)
+            sess.run(w)
 
             all_loss.append(loss)
 
             if (e % epochs_to_draw == epochs_to_draw-1):
                 plot_loss(all_loss)
                 plt.show()
-                plt.pause(0.1)     
+                plt.pause(0.1)
                 print("Epoch %d: loss is %.5f" % (e+1, loss))
         
         y_hat = sess.run(pred, feed_dict={'x:0': test_x})

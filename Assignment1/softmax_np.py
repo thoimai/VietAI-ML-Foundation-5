@@ -27,8 +27,12 @@ class SoftmaxClassifier(LogisticClassifier):
         """
         # [TODO 2.3]
         # Compute softmax
+        x_max = np.max(x, axis=1).reshape(-1,1)
 
-        return None
+        e_x = np.exp(x - x_max)
+        e_x_sum = np.sum(e_x, axis=1).reshape(-1,1)
+
+        return e_x / e_x_sum
 
 
     def feed_forward(self, x):
@@ -39,8 +43,13 @@ class SoftmaxClassifier(LogisticClassifier):
         """
         # [TODO 2.3]
         # Compute a feed forward pass
+        z = np.dot(x, self.w)
+        z_max = np.max(z, axis=1).reshape(-1,1)
+        e_z = np.exp(z - z_max)
+        e_z_sum = np.sum(e_z, axis=1).reshape(-1,1)
 
-        return None
+        return e_z / e_z_sum
+
 
 
     def compute_loss(self, y, y_hat):
@@ -52,8 +61,10 @@ class SoftmaxClassifier(LogisticClassifier):
         """
         # [TODO 2.4]
         # Compute categorical loss
+        m = y.shape[0]
+        loss = - np.sum(y * np.log(y_hat)) / m
 
-        return 0
+        return loss
 
 
     def get_grad(self, x, y, y_hat):
@@ -65,8 +76,11 @@ class SoftmaxClassifier(LogisticClassifier):
         """ 
         # [TODO 2.5]
         # Compute gradient of the loss function with respect to w
+        m = y.shape[0]
+        loss = y_hat - y
+        w_grad = np.dot(x.T, loss)/m
 
-        return None    
+        return w_grad
 
 
 def plot_loss(train_loss, val_loss):
@@ -76,7 +90,7 @@ def plot_loss(train_loss, val_loss):
     plt.plot(val_loss, color='g')
 
 
-def draw_weight(classifier):
+def draw_weight(w):
     label_names = ['T-shirt', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
     plt.figure(2, figsize=(8, 6))
     plt.clf()
@@ -99,7 +113,12 @@ def normalize(train_x, val_x, test_x):
     """
     # [TODO 2.1]
     # train_mean and train_std should have the shape of (1, 1)
+    mean_all_train = np.mean(train_x)
+    std_all_train  = np.sqrt(np.mean((train_x - mean_all_train)**2))
 
+    train_x = (train_x - mean_all_train)/std_all_train
+    val_x   = (val_x - mean_all_train)/std_all_train
+    test_x  = (test_x - mean_all_train)/std_all_train
     return train_x, val_x, test_x
 
 
@@ -112,8 +131,12 @@ def create_one_hot(labels, num_k=10):
     """
     # [TODO 2.2]
     # Create the one-hot label matrix here based on labels
+    m  = len(labels)
+    one_hot_vec = np.zeros((m, num_k))
 
-    return None 
+    one_hot_vec[np.arange(m), labels] = 1
+
+    return one_hot_vec
 
 
 def test(y_hat, test_y):
@@ -129,6 +152,14 @@ def test(y_hat, test_y):
 
     # [TODO 2.7]
     # Compute the confusion matrix here
+    y_pred = np.argmax(y_hat, axis=1)
+    y_test = np.argmax(test_y, axis=1)
+
+    k = confusion_mat.shape[0]
+
+    for i in range(k):
+        confusion_mat[i] = [sum((y_test == i) & (y_pred == j)) for j in range(k)]
+        confusion_mat[i] /= sum(y_test == i)
 
     np.set_printoptions(precision=2)
     print('Confusion matrix:')
@@ -147,7 +178,7 @@ if __name__ == "__main__":
     num_val = val_x.shape[0]
     num_test = test_x.shape[0]  
 
-    generate_unit_testcase(train_x.copy(), train_y.copy()) 
+    # generate_unit_testcase(train_x.copy(), train_y.copy())
 
     # Convert label lists to one-hot (one-of-k) encoding
     train_y = create_one_hot(train_y)
@@ -190,17 +221,24 @@ if __name__ == "__main__":
         dec_classifier.update_weight(grad, learning_rate)
         #dec_classifier.update_weight_momentum(grad, learning_rate, momentum, momentum_rate)
 
-        all_train_loss.append(train_loss) 
+        all_train_loss.append(train_loss)
         all_val_loss.append(val_loss)
 
         # [TODO 2.6]
         # Propose your own stopping condition here
+        diff = np.exp(-7)
+        step_epoch = 30
+
+        if(e % step_epoch == step_epoch - 1):
+            if(np.abs(train_loss - all_train_loss[-step_epoch]) < diff):
+                break
+
 
         if (e % epochs_to_draw == epochs_to_draw-1):
             plot_loss(all_train_loss, all_val_loss)
             draw_weight(dec_classifier.w)
             plt.show()
-            plt.pause(0.1) 
+            plt.pause(0.1)
             print("Epoch %d: train loss: %.5f || val loss: %.5f" % (e+1, train_loss, val_loss))
 
     y_hat = dec_classifier.feed_forward(test_x)

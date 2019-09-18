@@ -33,7 +33,7 @@ class LogisticClassifier(object):
         # [TODO 1.5]
         # Compute feedforward result
 
-        z = np.dot(x.T, self.w)
+        z = np.dot(x, self.w)
         result = 1. / (1. + np.exp(-z))
 
         return result
@@ -162,7 +162,7 @@ def add_one(x):
     # [TODO 1.4]
     m = x.shape[0]
 
-    x = np.concatenate((np.ones((m,1)), x), axis=1)
+    x = np.concatenate((x, np.ones((m,1))), axis=1)
 
     return x
 
@@ -177,13 +177,15 @@ def test(y_hat, test_y):
     
     # [TODO 1.10]
     # Compute test scores using test_y and y_hat
-    P1 = len(test_y[np.where(test_y==1)])
-    P2 = len(y_hat[np.where(y_hat==1)])
-    TP = len(np.where(y_hat == test_y)[0])
+    y_pred = y_hat.round()
 
-    precision = float(TP) / float(P1)
-    recall = float(TP) / float(P2)
-    f1 = 2/(1/precision + 1/recall)
+    tp = sum((y_pred == 1) & (test_y == 1))
+    fp = sum((y_pred == 1) & (test_y == 0))
+    p = sum(test_y)
+
+    precision = tp / (tp + fp)
+    recall = tp / p
+    f1 = 2 / (1 / precision + 1 / recall)
 
     print("Precision: %.3f" % precision)
     print("Recall: %.3f" % recall)
