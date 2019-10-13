@@ -23,7 +23,7 @@ def bat_classification():
  
     # DNN parameters
     hidden_layers = [100, 100, 100]
-    learning_rate = 0.1
+    learning_rate = 0.01
     batch_size = 200
     steps = 2000
    
@@ -37,7 +37,7 @@ def bat_classification():
     # tf.nn.elu
     # tf.nn.sigmoid
     # tf.nn.tanh
-    activation = None
+    activation = tf.nn.relu
     
     # [TODO 1.7] Create a neural network and train it using estimator
 
@@ -54,18 +54,26 @@ def bat_classification():
     # tf.train.ProximalAdagradOptimizer
     # tf.train.RMSPropOptimizer
     # Create optimizer
-    optimizer = None
+    # optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
 
     # optimizer = tf.train.GradientDescentOptimizer(learning_rate=0.01)
-    # optimizer = tf.train.MomentumOptimizer(learning_rate=0.01, momentum=0.005)
+    optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.005)
     
     # build a deep neural network
     # https://www.tensorflow.org/api_docs/python/tf/estimator/DNNClassifier
-    classifier = None 
+    classifier = tf.estimator.DNNClassifier(feature_columns=feature_columns,
+                                            hidden_units=hidden_layers,
+                                            n_classes=num_class,
+                                            activation_fn=activation,
+                                            optimizer=optimizer)
     
     # Define the training inputs
     # https://www.tensorflow.org/api_docs/python/tf/estimator/inputs/numpy_input_fn
-    train_input_fn = None 
+    train_input_fn = tf.estimator.inputs.numpy_input_fn(x = {"x": train_x},
+                                                        y = train_y,
+                                                        batch_size=batch_size,
+                                                        shuffle=True,
+                                                        num_epochs=None)
     
     # Train model.
     classifier.train(
@@ -104,7 +112,7 @@ def mnist_classification():
 
     # DNN parameters
     hidden_layers = [100, 100, 100]
-    learning_rate = 0.1
+    learning_rate = 0.01
     batch_size = 200
     steps = 500
    
@@ -113,18 +121,26 @@ def mnist_classification():
 
 
     # Choose activation function
-    activation = None
+    activation = tf.nn.sigmoid
     
     # Some available gradient descent optimization algorithms 
     # TODO: [YC1.7] Create optimizer
-    optimizer = None 
+    optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=0.005)
     
     # build a deep neural network
-    classifier = None 
-    
+    classifier = tf.estimator.DNNClassifier(feature_columns=feature_columns,
+                                            hidden_units=hidden_layers,
+                                            n_classes=num_class,
+                                            activation_fn=activation,
+                                            optimizer=optimizer)
+
     # Define the training inputs
     # https://www.tensorflow.org/api_docs/python/tf/estimator/inputs/numpy_input_fn
-    train_input_fn = None
+    train_input_fn = tf.estimator.inputs.numpy_input_fn(x = {"x": train_x},
+                                                        y = train_y,
+                                                        batch_size=batch_size,
+                                                        shuffle=True,
+                                                        num_epochs=None)
     
     # Train model.
     classifier.train(

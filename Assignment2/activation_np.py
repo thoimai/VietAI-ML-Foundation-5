@@ -13,7 +13,7 @@ def sigmoid(x):
     :param x: input
     """
     #[TODO 1.1]
-    return None
+    return 1. / (1. + np.exp(-x))
 
 
 def sigmoid_grad(a):
@@ -23,7 +23,7 @@ def sigmoid_grad(a):
     :param a: output of the sigmoid function
     """
     #[TODO 1.1]
-    return None
+    return a * (1 - a)
 
 
 def reLU(x):
@@ -33,8 +33,7 @@ def reLU(x):
     :param x: input
     """
     #[TODO 1.1]
-    return None
-
+    return x * (x>0)
 
 def reLU_grad(a):
     """reLU_grad
@@ -43,7 +42,7 @@ def reLU_grad(a):
     :param x: output of ReLU
     """
     #[TODO 1.1]
-    grad = None
+    grad = 1. * (a>0)
     return grad
 
 
@@ -54,7 +53,7 @@ def tanh(x):
     :param x: input
     """
     #[TODO 1.1]
-    return None
+    return 2. / (1 + np.exp(-2*x)) - 1
 
 
 def tanh_grad(a):
@@ -64,7 +63,7 @@ def tanh_grad(a):
     :param a: output of tanh
     """
     #[TODO 1.1]
-    return None
+    return 1 - np.power(a, 2)
 
 
 def softmax(x):
@@ -73,9 +72,9 @@ def softmax(x):
     Softmax function.
     :param x: input
     """
-
-    output = None 
-    return None
+    e_x = np.exp(x)
+    output = e_x / np.sum(e_x, axis=1, keepdims=True)
+    return output
 
 
 def softmax_minus_max(x):
@@ -84,6 +83,9 @@ def softmax_minus_max(x):
     Stable softmax function.
     :param x: input
     """
+    max_x = np.max(x, axis=1, keepdims=True)
+    x -= max_x
+    e_x = np.exp(x)
+    output = e_x / np.sum(e_x, axis=1, keepdims=True)
 
-    output = None 
-    return None
+    return output

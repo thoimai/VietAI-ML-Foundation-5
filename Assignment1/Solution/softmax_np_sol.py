@@ -287,3 +287,5 @@ if __name__ == "__main__":
     
     y_hat = dec_classifier.feed_forward(test_x)
     test(y_hat, test_y)
+
+

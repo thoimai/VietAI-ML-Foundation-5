@@ -45,17 +45,17 @@ class Layer(object):
         :param x: input
         """
         # [TODO 1.2]
-        result = None
+        result = np.dot(x, self.w)
         
         # Compute different types of activation
         if (self.activation == 'sigmoid'):
-            result = None
+            result = sigmoid(result)
         elif (self.activation == 'relu'):
-            result = None
+            result = reLU(result)
         elif (self.activation == 'tanh'):
-            result = None
+            result = tanh(result)
         elif (self.activation == 'softmax'):
-            result = None
+            result = softmax_minus_max(result)
 
         self.output = result
         return result
@@ -68,17 +68,22 @@ class Layer(object):
         :param delta_prev: delta computed from the next layer (in feedforward direction) or previous layer (in backpropagation direction)
         """
         # [TODO 1.2]
+        z = np.dot(x, self.w)
+
         if(self.activation == 'sigmoid'):
-            w_grad = None 
-        
+            delta = delta_prev*sigmoid_grad(z)
+            w_grad = np.dot(x.T, delta)
+
         elif(self.activation == 'tanh'):
-           w_grad = None 
+           delta = delta_prev*tanh_grad(z)
+           w_grad = np.dot(x.T, delta)
 
         elif(self.activation == 'relu'):
-           w_grad = None 
+           delta = delta_prev*reLU_grad(z)
+           w_grad = np.dot(x.T, delta)
 
         # [TODO 1.4] Implement L2 regularization on weights here
-        w_grad +=  0
+        w_grad += self.reg*self.w
         return w_grad, delta.copy()
 
 
@@ -102,7 +107,7 @@ class NeuralNet(object):
         if(activation == 'sigmoid'):
             self.layers.append(Layer(w_shape, 'sigmoid', self.reg))
         elif(activation == 'relu'):
-            self.layers.append(Layer(w_shape, 'relu', self.reg)) 
+            self.layers.append(Layer(w_shape, 'relu', self.reg))
         elif(activation == 'tanh'):
             self.layers.append(Layer(w_shape, 'tanh', self.reg))
         elif(activation == 'softmax'):
@@ -132,10 +137,10 @@ class NeuralNet(object):
 
         # [TODO 1.3]
         # Estimating cross entropy loss from s and y 
-        data_loss = 0
+        data_loss = np.mean(-np.sum(y*np.log(s), axis=1, keepdims=True))
 
         # Estimating regularization loss from all layers
-        reg_loss = 0.0
+        reg_loss = self.reg * np.sum(np.power(self.layers[-1].w, 2), axis=1, keepdims=True)
         data_loss += reg_loss
 
         return data_loss
@@ -148,11 +153,11 @@ class NeuralNet(object):
         """
         
         # [TODO 1.5] Compute delta factor from the output
-        delta = 0
+        delta = all_x[-1] - y
         delta /= y.shape[0]
         
         # [TODO 1.5] Compute gradient of the loss function with respect to w of softmax layer, use delta from the output
-        grad_last = 0
+        grad_last = np.dot(all_x[-2].T, delta)
 
         grad_list = []
         grad_list.append(grad_last)
@@ -162,7 +167,8 @@ class NeuralNet(object):
             layer = self.layers[i]
             x = all_x[i]
             # [TODO 1.5] Compute delta_prev factor for previous layer (in backpropagation direction)
-            delta_prev = 0
+            # print(layer.w.shape, delta.shape)
+            delta_prev = np.dot(delta, prev_layer.w.T)
 	        # Use delta_prev to compute delta factor for the next layer (in backpropagation direction)
             grad_w, delta = layer.backward(x, delta_prev)
             grad_list.append(grad_w.copy())
@@ -204,6 +210,7 @@ def test(s, test_y):
     :param s: predicted probabilites, output of classifier.feed_forward
     :param test_y: test labels
     """
+    y_hat = s
     if (s.ndim == 2):
         y_hat = np.argmax(s, axis=1)
     num_class = np.unique(test_y).size
@@ -259,8 +266,38 @@ def minibatch_train(net, train_x, train_y, cfg):
     :param cfg: Config object
     """
     # [TODO 1.6] Implement mini-batch training
-    pass
-    
+    all_loss = []
+
+    for e in range(cfg.num_epoch):
+        shuffled_indices = np.random.permutation(cfg.num_train)
+        train_x_shuffled = train_x[shuffled_indices]
+        train_y_shuffled = train_y[shuffled_indices]
+        mini_loss = []
+
+        for i in range(0, cfg.num_train, cfg.batch_size):
+            train_set_x = train_x_shuffled[i : i + cfg.batch_size].copy()
+            train_set_y = train_y_shuffled[i : i + cfg.batch_size].copy()
+            train_set_y = create_one_hot(train_set_y, net.num_class)
+
+            all_x = net.forward(train_set_x)
+            s = all_x[-1]
+            loss = net.compute_loss(train_set_y, s)
+            grads = net.backward(train_set_y, all_x)
+            net.update_weight(grads, cfg.learning_rate)
+
+            mini_loss.append(loss)
+
+        loss_mean = np.mean(mini_loss)
+        all_loss.append(loss_mean)
+
+        if (cfg.visualize and e % cfg.epochs_to_draw == cfg.epochs_to_draw-1):
+            s = net.forward(train_x[0::3])[-1]
+            visualize_point(train_x[0::3], train_y[0::3], s)
+            plot_loss(all_loss, 2)
+            plt.show()
+            plt.pause(0.01)
+
+        print("Epoch %d: loss is %.5f" % (e+1, loss_mean))
 
 
 def batch_train(net, train_x, train_y, cfg):
@@ -301,7 +338,9 @@ def bat_classification():
     # Load data from file
     # Make sure that bat.dat is in data/
     train_x, train_y, test_x, test_y = get_bat_data()
-    train_x, _, test_x = normalize(train_x, train_x, test_x)    
+    train_x, _, test_x = normalize(train_x, train_x, test_x)
+
+    # print(train_x.shape)
 
     test_y  = test_y.flatten()
     train_y = train_y.flatten()
@@ -342,7 +381,9 @@ def mnist_classification():
     # Load data from file
     # Make sure that fashion-mnist/*.gz is in data/
     train_x, train_y, val_x, val_y, test_x, test_y = get_mnist_data(1)
-    train_x, val_x, test_x = normalize(train_x, train_x, test_x)    
+    train_x, val_x, test_x = normalize(train_x, train_x, test_x)
+
+    # print(train_x.shape, train_y.shape)
     
     num_class = (np.unique(train_y)).shape[0]
 
@@ -352,7 +393,7 @@ def mnist_classification():
     test_x = add_one(test_x)
 
     # Define hyper-parameters and train-related parameters
-    cfg = Config(num_epoch=300, learning_rate=0.001, batch_size=200, num_train=train_x.shape, visualize=False)
+    cfg = Config(num_epoch=300, learning_rate=0.001, batch_size=200, num_train=train_x.shape[0], visualize=False)
 
     # Create NN classifier
     num_hidden_nodes = 100
